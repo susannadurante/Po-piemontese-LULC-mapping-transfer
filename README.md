@@ -1,6 +1,6 @@
 # Po-piemontese-LULC-mapping-transfer
 
-Hierarchical Land Use / Land Cover (LULC) mapping of the *Parco naturale del Po piemontese* (NW Italy) from multi-temporal Sentinel-2 imagery and Random Forest, with transfer of a pre-existing classification from a reference sector to an unmapped sector in the absence of ground truth.
+Hierarchical Land Use / Land Use Land Cover (LULC) mapping of the *Parco naturale del Po piemontese* (NW Italy) from multi-temporal Sentinel-2 imagery and Random Forest, with transfer of a pre-existing classification from a reference sector to an unmapped sector in the absence of ground truth.
 
 ## Overview
 
@@ -118,12 +118,12 @@ DOI: [10.1007/s10661-025-14669-0](https://doi.org/10.1007/s10661-025-14669-0)
 Reference repository: `chiararik/GPNP-habitat-mapping`.
 
 Additional methodological references: Meyer & Pebesma (2021, Area of Applicability);
-Olofsson et al. (2014, area-adjusted accuracy); Richards & Jia (2006, JM/Bhattacharyya).
+; Richards & Jia (2006, JM/Bhattacharyya).
 
 ## License
 
 Released under **CC0 1.0 Universal** (public domain dedication): see `LICENSE`.
 
 You are free to use, adapt and redistribute this code without restriction.
-If it contributes to your work, a citation of Richiardi et al. (2025) and a link
-back to this repository are kindly appreciated but not required.
+If it contributes to your work, a link back to this repository are kindly 
+appreciated but not required.
