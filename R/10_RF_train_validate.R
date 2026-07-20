@@ -12,8 +12,8 @@
 # How the k-fold works (per pixel): recombines train_pixel.csv + validation_pixel.csv
 #   = all the model's pixels, then reassigns k stratified folds. Each fold is the
 #   hold-out in turn while the others train: every pixel is predicted EXACTLY ONCE.
-#   Two views follow: a pooled confusion matrix over all pixels (basis for
-#   Olofsson), and per-fold OA -> mean and variability band across folds.
+# Two views follow: a pooled confusion matrix over all pixels, and per-fold OA
+#   -> mean and variability band across folds.
 #
 # What it estimates (and not): this is INTERNAL validation on the labelled area; it
 #   estimates the quality of the MODEL. It does NOT validate the Turin-sector map,
@@ -83,43 +83,6 @@ COLS_ESCLUSE <- c("ID_PIXEL", "x", "y", "COD_L1", "COD_L2")
 
 cat(sprintf("RF k-fold | model=%s | target=%s | k=%d | seed=%d | weights=%s\n",
     MODELLO, TARGET, K_FOLD, SEED, USA_PESI))
-
-# Olofsson 2014 (area-adjusted accuracy) ----
-# Reference: Olofsson P. et al. (2014) Remote Sens. Environ. 148:42-57.
-# Note: with the k-fold the validation comes from the folds (internal CV), not from
-# an independent probability sample -> read the estimates as relative indicators.
-calcola_olofsson <- function(cm_table, pixel_area_m2 = 100) {
-  nclass <- nrow(cm_table)
-  conf   <- 1.96
-  maparea <- rowSums(cm_table) * pixel_area_m2 / 10000
-  A    <- sum(maparea)
-  W_i  <- maparea / A
-  n_i  <- rowSums(cm_table)
-  p    <- sweep(cm_table, 1, n_i, "/")
-  p    <- sweep(p, 1, W_i, "*")
-  p[is.nan(p)] <- 0
-  p_area    <- colSums(p) * A
-  p_area_CI <- conf * A * sqrt(colSums((W_i * p - p^2) / pmax(n_i-1, 1)))
-  OA    <- sum(diag(p))
-  PA    <- diag(p) / colSums(p)
-  UA    <- diag(p) / rowSums(p)
-  F1    <- ifelse((PA+UA)>0, 2*PA*UA/(PA+UA), 0)
-  OA_CI <- conf * sqrt(sum(W_i^2 * UA * (1-UA) / pmax(n_i-1, 1)))
-  UA_CI <- conf * sqrt(UA * (1-UA) / pmax(n_i-1, 1))
-  N_j   <- sapply(seq_len(nclass), function(x) sum(maparea/n_i*cm_table[,x], na.rm=TRUE))
-  tmp   <- sapply(seq_len(nclass), function(x)
-    sum(maparea[-x]^2 * cm_table[-x,x] / n_i[-x] *
-        (1 - cm_table[-x,x]/n_i[-x]) / pmax(n_i[-x]-1, 1), na.rm=TRUE))
-  PA_CI <- conf * sqrt(1/N_j^2 *
-    (maparea^2*(1-PA)^2*UA*(1-UA)/pmax(n_i-1,1) + PA^2*tmp))
-  data.frame(
-    classe=rownames(cm_table),
-    area_ha=round(p_area,2), area_ha_CI=round(p_area_CI,2),
-    PA=round(PA*100,2), PA_CI=round(PA_CI*100,2),
-    UA=round(UA*100,2), UA_CI=round(UA_CI*100,2),
-    F1=round(F1*100,2), OA=round(OA*100,2), OA_CI=round(OA_CI*100,2)
-  )
-}
 
 # Manual metrics (no caret) ----
 # OA, Kappa, per-class UA/PA/F1/SPEC, plus aggregate indices for imbalanced data
@@ -387,12 +350,6 @@ fwrite(data.frame(classe = all_levels, UA = met_pool$UA, PA = met_pool$PA,
 fwrite(as.data.frame(met_pool$cm_table),
        file.path(DIR_OUT, "confusion_matrix_kfold.csv"))
 
-olf <- tryCatch(calcola_olofsson(as.matrix(met_pool$cm_table)),
-                error = function(e) { warning(paste("Olofsson:", e$message)); NULL })
-if (!is.null(olf)) {
-  fwrite(olf, file.path(DIR_OUT, "olofsson_kfold.csv"))
-  cat(sprintf("   Olofsson area-adjusted OA=%.1f%% +/- %.1f%%\n", olf$OA[1], olf$OA_CI[1]))
-}
 rm(pred_oof); gc(verbose = FALSE)
 
 # Final model for classification ----
@@ -446,7 +403,7 @@ cat(sprintf("   Pooled BA: %.1f%%  WA: %.1f%%  TSS: %.3f  G-Mean: %.3f\n",
     met_pool$BA, met_pool$WA, met_pool$TSS, met_pool$GMean))
 cat(sprintf("   Output in: %s\n", DIR_OUT))
 cat("   Files: kfold_per_fold.csv, kfold_summary.csv, validation_kfold.csv,\n")
-cat("          confusion_matrix_kfold.csv, olofsson_kfold.csv, tuning.csv,\n")
+cat("          confusion_matrix_kfold.csv, tuning.csv,\n")
 cat("          variable_importance.csv, rf_model_final.rds\n")
 cat("   Note: INTERNAL estimate (labelled area). The Turin sector is extrapolation\n")
 cat("         -> validate with the independent photo-interpreted set + Area of\n")
